@@ -14,7 +14,7 @@ We run nmap on the box and find two open ports: 80/tcp, 22/tcp
 nmap -sV -sC -oA nmap/openadmin 10.10.10.171
 ```
 
-![](images/nmap-screenshot.jpg)
+![](images/nmap-screenshot.png)
 
 We take a look at port 80 in our browser by going to http://10.10.10.171 and we find that there is just an Ubuntu Apache2 Default Page running. 
 
@@ -24,15 +24,15 @@ We run gobuster to enumerate any directories that may give us more information a
 gobuster dir -u http://10.10.10.171/ -w /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt
 ```
 
-![](images/gobuster.jpg)
+![](images/gobuster.png)
 
 When we visit the webpage we see a login and signup button.
 
-![](images/music.jpg)
+![](images/music.png)
 
 Navigating to the login section of the site, we are redirected to http://10.10.10.171/ona which is a service called  **opennetadmin**. We are logged into the service as a guest. We can see near the top of the page that the version running is v18.1.1
 
-![](images/ona.jpg)
+![](images/ona.png)
 
 ## Initial Foothold
 
@@ -42,7 +42,7 @@ Now that we know the version number, we want to search for publicly available ex
 searchsploit opennetadmin
 ```
 
-![searchsploit.jpg](images/searchsploit.jpg)
+![searchsploit.png](images/searchsploit.png)
 
 We find an exploit for RCE, 46791.sh
 
@@ -55,7 +55,7 @@ mv 47691.sh ona-rce.py
 
 
 
-![copy-exploit.jpg](images/copy-exploit.jpg)
+![copy-exploit.png](images/copy-exploit.png)
 
 
 
@@ -95,19 +95,19 @@ dos2unix ona-rce.py
 
 We run the exploit and find that we are able to execute code as ```www-data```
 
-![](images/initial-foothold.jpg)
+![](images/initial-foothold.png)
 
 We now enumerate files on the box, looking for any sensitive information in any of the php files found on the webserver. We find ```local/config/database_settings.inc.php``` which contains a password.
 
-![database-settings.jpg](images/database-settings.jpg)
+![database-settings.png](images/database-settings.png)
 
 We look for users on the box that have a login shell by looking at ```/etc/passwd``` and find two users on the box: jimmy and joanna.
 
-![etc-passwd.jpg](images/etc-passwd.jpg)
+![etc-passwd.png](images/etc-passwd.png)
 
 Now that we have a couple users, we check for credential resuse and find that jimmy has reused a password. Because of this, we are able to ssh into the box as user jimmy the password 'n1nj4W4rri0r!'
 
-![jimmy-ssh.jpg](images/jimmy-ssh.jpg)
+![jimmy-ssh.png](images/jimmy-ssh.png)
 
 
 
@@ -117,7 +117,7 @@ Now that we are logged in as the user jimmy, we need to pivot to joanna since sh
 
 
 
-![internal-conf.jpg](images/internal-conf.jpg)
+![internal-conf.png](images/internal-conf.png)
 
 We see that the site is running on port 52846. We navigate back to the ```/var/www/internal``` directory to take a look at the files, and we see that ```main.php``` executes code that outputs joanna's ssh rsa key.
 
@@ -125,11 +125,11 @@ We see that the site is running on port 52846. We navigate back to the ```/var/w
 vim /var/www/internal/main.php
 ```
 
-![main-php.jpg](images/main-php.jpg)
+![main-php.png](images/main-php.png)
 
 Since we know the internal site is running on port 52486, we can try to curl this page to see if the code executes. We get the key.
 
-![curl-joanna-key.jpg](images/curl-joanna-key.jpg)
+![curl-joanna-key.png](images/curl-joanna-key.png)
 
 Now that we have they key, we save it to our local machine as ```joanna_id_rsa```. Since the file is encrypted, we will need to crack the password. We use ```ssh2john``` to change the rsa key to a format that john the ripper will understand.
 
@@ -145,7 +145,7 @@ john joanna_id_rsa.john --wordlist=/usr/share/wordlists/rockyou.txt
 
 After a moment, we can see that john cracks the key for us:
 
-![crack-joanna.jpg](images/crack-joanna.jpg)
+![crack-joanna.png](images/crack-joanna.png)
 
 We need to lock down permissions on the key to 600 or ssh will yell at us for having a world-readable key:
 
@@ -159,11 +159,11 @@ Now we can login with ssh using joanna's key and 'bloodninjas' password.
 ssh -i joanna_id_rsa joanna@10.10.10.171 
 ```
 
-![joanna-ssh.jpg](images/joanna-ssh.jpg)
+![joanna-ssh.png](images/joanna-ssh.png)
 
 We have owned user!
 
-![user-txt.PNG](images/user-txt.PNG)
+![user-txt.png](images/user-txt.png)
 
 
 
@@ -171,16 +171,16 @@ We have owned user!
 
 Now we need to find a path to root. We begin by seeing what commands joanna can run as sudo with ```sudo -l``` and see that she can run ```/bin/nano /opt/priv``` as root.
 
-![sudo-l.PNG](images/sudo-l.PNG)
+![sudo-l.png](images/sudo-l.png)
 
 Usually when a user can run a system binary as root, I like to check [GTFObins](https://gtfobins.github.io/) to see if it is exploitable. We see nano on the list and that we can use control commands to execute code as root and escape to a shell.
 
-![Ref: https://gtfobins.github.io/nano](images/gtfo-nano.PNG)
+![Ref: https://gtfobins.github.io/nano](images/gtfo-nano.png)
 
 We run ``` sudo /bin/nano /opt/priv``` to open the editor as root. From there, we hit CTRL+R for Read File, then CTRL+X to Execute Command. we type ```reset; sh 1>&0 2>&0``` to reset our shell, spawn ```sh``` and redirect standard out and standard error to the terminal. This gives a root shell.
 
 
 
-![nano-root.jpg](images/nano-root.jpg)
+![nano-root.png](images/nano-root.png)
 
 Root Owned!
