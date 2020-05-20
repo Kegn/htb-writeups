@@ -104,7 +104,7 @@ We use ffuf with raft-large-files.txt to find the changelog left on the server w
 ffuf -w /opt/SecLists/Discovery/Web-Content/raft-large-words.txt -u http://10.10.10.173/release/FUZZ -t 100 -mc 200
 ```
 
-![](images/fuff-changelog.png)
+![](images/ffuf-changelog.png)
 
 UpdateDetails:
 ```
@@ -140,7 +140,7 @@ Taking a look at the structure of the Docx file we can see there is a cusomXML d
 
 We find a potential exploit on [PayloadsAllTheThings](https://github.com/swisskyrepo/PayloadsAllTheThings/tree/master/XXE%20Injection)
 
-![](xxe-oob-dtd.png)
+![](images/xxe-oob-dtd.png)
 
 We inject the code into our ``` customXml/item1.xml ``` file:
 
