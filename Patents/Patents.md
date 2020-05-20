@@ -1,6 +1,6 @@
 # HackTheBox | Patents [User]
 
-[](images/status-card.png)
+![](images/status-card.png)
 
 ## Enumeration
 
@@ -55,11 +55,11 @@ document.save('valid.docx')
 
 Once we upload the document we are able to download the pdf.
 
-[](images/download-patent.png)
+![](images/download-patent.png)
 
 We can see the downloaded pdf contents exist as a file on the server.
 
-[](images/converted-pdf.png)
+![](images/converted-pdf.png)
 
 We attempt XXE but are unsuccessful.
 
@@ -104,7 +104,7 @@ We use ffuf with raft-large-files.txt to find the changelog left on the server w
 ffuf -w /opt/SecLists/Discovery/Web-Content/raft-large-words.txt -u http://10.10.10.173/release/FUZZ -t 100 -mc 200
 ```
 
-[](images/fuff-changelog.png)
+![](images/fuff-changelog.png)
 
 UpdateDetails:
 ```
@@ -136,11 +136,11 @@ This changelog tells us two things:
 
 Taking a look at the structure of the Docx file we can see there is a cusomXML directory.
 
-[](images/docx-structure.png)
+![](images/docx-structure.png)
 
 We find a potential exploit on [PayloadsAllTheThings](https://github.com/swisskyrepo/PayloadsAllTheThings/tree/master/XXE%20Injection)
 
-[](xxe-oob-dtd.png)
+![](xxe-oob-dtd.png)
 
 We inject the code into our ``` customXml/item1.xml ``` file:
 
@@ -164,11 +164,11 @@ Now we set up our local file that will be called ```dtd.xml```
 
 We set up a python server and upload and convert our exploit. We get the contents of /etc/passwd encoded in base64.
 
-[](images/etc-passwd-base64.png)
+![](images/etc-passwd-base64.png)
 
 We decode this and our response was valid. We can read information on the system!
 
-[](images/etc-passwd.png)
+![](images/etc-passwd.png)
 
 
 We continue hunting for files and we are able to exfiltrate the config.php file at ```/var/www/html/docx2pdf/config.php```
@@ -186,21 +186,21 @@ define('PATENTS_DIR', '/patents/');
 
 This points us to a new file. Upon browsing to the file, we can see that there is an **id** parameter.
 
-[](images/alphav1.png)
+![](images/alphav1.png)
 
 We can exploit this again via LFI using a nested path traversal string:
 
 ```http://10.10.10.173/getPatent_alphav1.0.php?id=....//....//....//....//....//etc/passwd```
 
-[](images/lfi-etc-passwd.png)
+![](images/lfi-etc-passwd.png)
 
 We see that we can read the apache log file
 
-[](images/apache-log-file.png)
+![](images/apache-log-file.png)
 
 We can poison this with netcat by injecting php code into the log, that is executed when we pass the parameter and command into the url.
 
-[](images/netcat-poison.png)
+![](images/netcat-poison.png)
 
 Now we can browse to
 ```
@@ -208,11 +208,11 @@ http://10.10.10.173/getPatent_alpha1.0.php?c=whoami&id=....//....//....//....//v
 ```
 to see the execute of ```whoami``` in the log.
 
-[](images/php-whoami.png)
+![](images/php-whoami.png)
 
 We can use this to get a reverse shell.
 
-[](images/initial-foothold.png)
+![](images/initial-foothold.png)
 
 
 ## Pivoting to User
@@ -221,7 +221,7 @@ Now that we are on the box, we need to escalate to root of the container.
 
 Using pspy, we are able to see the ouput of a script that runs that contains the root password of the docker container that we are in.
 
-[](images/pspy.png)
+![](images/pspy.png)
 
 We use this password (removing the escape slashes in front of $) with
 ```
@@ -230,4 +230,4 @@ su root
 
 And we have User!
 
-[](images/user.png)
+![](images/user.png)
